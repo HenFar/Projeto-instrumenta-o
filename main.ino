@@ -1,3 +1,8 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -10,6 +15,10 @@ void setup() {
   pinMode(3, OUTPUT);
   pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
+
+  lcd.begin(16,02);
+  lcd.clear();
+  lcd.setBacklight(HIGH);
 }
 
 void loop() {
@@ -20,17 +29,18 @@ void loop() {
   int d;
 
   int luz = 0;
+  int q = 0;
 
   double v_audio = analogRead(0);  // audio setup
   Serial.print("audio: ");
   //Serial.println(v_audio);
   double v_a = v_audio * 5 / 1023;
-  double db = map(v_audio, 0, 1023, 0, 10);
+  double db = map(v_a, 0, 1023, 0, 10);
   Serial.println(db);
   if (db > 70){
     a = 1;  // nivel amarelo
   }
-  if (db > 95){
+  else if (db > 95){
     a = 2;  // nivel vermelho
   }
   else {
@@ -39,7 +49,7 @@ void loop() {
 
 //Serial.print("\n");
 
-  double v_light = analogRead(1);
+  double v_light = analogRead(2);
   double r_v = v_light / 1023 * 5;
   double r_v_ldr = 5 - r_v;
   double r_ldr = r_v_ldr / r_v * 1000;
@@ -52,7 +62,7 @@ void loop() {
   if (lx > 5000){
     b = 1;  // nivel amarelo
   }
-  if (lx > 50000){
+  else if (lx > 10000){
     b = 2;  // nivel vermelho
   }
   else {
@@ -61,7 +71,7 @@ void loop() {
 
 //Serial.print("\n");  
 
-  double v_temp = analogRead(2);
+  double v_temp = analogRead(4);
   Serial.print("temp: ");
   //Serial.println(v_temp);
   double v_outT = v_temp * 5 / 1024;
@@ -70,16 +80,17 @@ void loop() {
   if (temp > 35){
     c = 1;  // nivel amarelo
   }
-  if (temp > 45){
+  else if (temp > 45){
     c = 2;  // nivel vermelho 
   }
-  else {
+  else{
     c = 0;
   }
+  Serial.println(c);
 
 //Serial.print("\n");  
 
-  double v_fire = analogRead(3);
+  double v_fire = analogRead(6);
   //Serial.print("fire: ");
   //Serial.println(v_fire);
   if (v_fire < 1010){
@@ -95,14 +106,48 @@ Serial.print("\n");
 
 if (a==0 || b==0 || c==0 || d==0){
   luz = 0;
+  q = 0;
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Safe");
+  aviso(q);
 }
 
 if (a==1 || b==1 || c==1){
   luz = 1;
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Aviso");
+  if (a == 1){
+    q = 1;
+  }
+  if (b == 1){
+    q = 2;
+  }
+  if (c == 1){
+    q = 3;
+  }
+  aviso(q);
 }
 
 if (a==2 || b==2 || c==2 || d==2){
   luz = 2;
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Perigo");
+  if (a == 2){
+    q = 1;
+  }
+  if (b == 2){
+    q = 2;
+  }
+  if (c == 2){
+    q = 3;
+  }
+  if (d == 2){
+    q = 4;
+  }
+  aviso(q);
 }
 
 Serial.println(luz);
@@ -148,10 +193,38 @@ void vermelho(){
 
 void amarelo(){
   apagar();
-  verde();
-  vermelho();
+  digitalWrite(2, HIGH);
+  digitalWrite(3, HIGH);
 }
 
 void buzzer(){
-  tone(5, 200);
+  tone(5, 262);
+  delay(500);
+  tone(5, 370);
+  delay(500);
+}
+
+int aviso(int x){
+  switch (x){
+      case 0:
+        lcd.setCursor(0,1);
+        lcd.print("Niveis normais");
+        break;
+      case 1:
+        lcd.setCursor(0,1);
+        lcd.print("Som elevado");
+        break;
+      case 2:
+        lcd.setCursor(0,1);
+        lcd.print("Int lumi elev");
+        break;
+      case 3:
+        lcd.setCursor(0,1);
+        lcd.print("Temp elevada");
+        break;
+      case 4:
+        lcd.setCursor(0,1);
+        lcd.print("Fogo");
+        break;
+  }
 }
